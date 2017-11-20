@@ -28,6 +28,10 @@ import java.util.*;
  *
  * 相关概念：
  * 1. 支持度百分比
+ * 2. 支持度
+ * 3. 事务
+ * 4. 候选项集
+ * 5. 频繁项集
 
  */
 
@@ -36,7 +40,7 @@ import java.util.*;
 
 public class Main {
 
-    private static double SUPPORT_PERCENT = 0.01;
+    private static double SUPPORT_PERCENT = 0.05;
     private static List<String> data2DList = new ArrayList<>();
 
 
@@ -51,9 +55,7 @@ public class Main {
         importData();
 
         //2. 进行算法处理
-        System.err.println("计算机正在运算中……");
         apriori();
-        System.err.println("算法已经结束……");
     }
 
 
@@ -68,22 +70,36 @@ public class Main {
 
         //扫描整个数据库D，对每一项进行计数，获得一项的{候选项集合}
         Map<String, Integer> stepFrequentSetMap = new HashMap<>();
-        stepFrequentSetMap.putAll(getFrequentSets(findCandidateOneSets()));
+        System.out.println("\n=====================第" + 1 + "次扫描的频繁项集列表======================" + "\n");
 
-        int i = 0;
+
+        stepFrequentSetMap.putAll(getFrequentSets(findCandidateOneSets()));
+        Set<String> stringSet = stepFrequentSetMap.keySet();
+
+        for (String string: stringSet){
+            System.out.println("频繁集：" + string +  "支持度:" + stepFrequentSetMap.get(string));
+        }
+        System.out.println("\n频繁项集的个数：" + stringSet.size());
+
+        int i = 1;
         //当生成的频繁项集为空的时候，退出循环
         while(stepFrequentSetMap != null && stepFrequentSetMap.size()>0){
+
             i++;
+
             //打印当前的频繁项集的信息
             System.out.println("\n=====================第" + i + "次扫描的频繁项集列表======================" + "\n");
 
-            Set<String> stringSet = stepFrequentSetMap.keySet();
-            for (String string: stringSet){
-                System.out.println("频繁集：" + string +  "重复次数:" + stepFrequentSetMap.get(string));
-            }
-            System.out.println("\n频繁项集的个数：" + stringSet.size());
-
             stepFrequentSetMap = getFrequentSets(getMinCandidate(stepFrequentSetMap));
+
+            if (stepFrequentSetMap != null){
+                stringSet = stepFrequentSetMap.keySet();
+                for (String string: stringSet){
+                    System.out.println("频繁集：" + string +  "支持度:" + stepFrequentSetMap.get(string));
+                }
+                System.out.println("\n频繁项集的个数：" + stringSet.size());
+            }
+
         }
     }
 
@@ -193,14 +209,21 @@ public class Main {
                  * 自连接过程：
                  * 将第一个项集与第二个项集的最后一项连接起来
                  */
-                for (int i =0;i<itemArray1.length -1 ;i++){
-                    if (itemArray1[i].equals(itemArray2[i])){
-                        flag = false;
-                        break;
+
+                if (itemArray1.length == 1) {//itemkFcMap存放的是候选1项集集合时
+                    if (itemArray1[0].compareTo(itemArray2[0]) < 0) {
+                        linkString = itemArray1[0] + " " + itemArray2[0] + " ";
                     }
-                }
-                if (flag && itemArray1[itemArray1.length - 1].compareTo(itemArray2[itemArray1.length -1]) < 0){
-                    linkString = frequentItemList1  + itemArray2[itemArray2.length - 1] + " ";
+                }else {
+                    for (int i =0;i<itemArray1.length -1 ;i++){
+                        if (itemArray1[i].equals(itemArray2[i])){
+                            flag = false;
+                            break;
+                        }
+                    }
+                    if (flag && itemArray1[itemArray1.length - 1].compareTo(itemArray2[itemArray1.length -1]) < 0){
+                        linkString = frequentItemList1  + itemArray2[itemArray2.length - 1] + " ";
+                    }
                 }
 
                 /**
@@ -238,17 +261,36 @@ public class Main {
         }
 
         /**
-         * 3. {对生成的候选集进行统计重复次数}
+         * 3. {对生成的候选集进行统计支持度}
          */
 
         Set<String> minCandidateSet = minCandidateMapSet.keySet();
-        for (String data:data2DList){
-            for (String itemList: minCandidateSet){
-                if (data.contains(itemList)){
-                    //在原来的数据库中的当前行（事务）中能够找到该项集
+
+
+        // 将每一行的候选项集，由String数据变成字符串数组。
+        // 将每一行的事务，由String转换成List<String>
+        for (String itemList: minCandidateSet){
+            String[] strings = itemList.split(" ");
+            int num = 0;
+
+            for (String data:data2DList){
+                List<String>dataList = Arrays.asList(data.split(" "));
+
+                Boolean flag = true;
+                //如果候选项集中有一项在当前事务中找不到，支持度则不会增加
+                for (int i =0;i < strings.length;i++){
+
+                    if (!dataList.contains(strings[i])){
+
+                        flag = false;
+                        break;
+                    }
+                }
+                if (flag){
                     minCandidateMapSet.put(itemList,minCandidateMapSet.get(itemList) + 1);
                 }
             }
+
         }
 
         return minCandidateMapSet;
@@ -278,7 +320,8 @@ public class Main {
 
 
             Double SUPPORT = (data2DList.size() * SUPPORT_PERCENT);//最小支持度
-            System.out.println("最小支持度为：" + SUPPORT + " 候选项集的大小为：" + minCandidateMapSet.size());
+            //Double SUPPORT = 5.0;
+            System.out.println("最小支持度为：" + SUPPORT + " 候选项集的大小为：" + minCandidateMapSet.size() + "\n");
             for (String itemListString: minCandidateSet){
                 //如果该项集的重复次数大于或者等于最小支持度，就把该项加入到频繁项即中
                 if (minCandidateMapSet.get(itemListString) >= SUPPORT){
