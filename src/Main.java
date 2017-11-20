@@ -40,7 +40,7 @@ import java.util.*;
 
 public class Main {
 
-    private static double SUPPORT_PERCENT = 0.05;
+    private static double SUPPORT_PERCENT = 0.01;
     private static List<String> data2DList = new ArrayList<>();
 
 
@@ -210,20 +210,14 @@ public class Main {
                  * 将第一个项集与第二个项集的最后一项连接起来
                  */
 
-                if (itemArray1.length == 1) {//itemkFcMap存放的是候选1项集集合时
-                    if (itemArray1[0].compareTo(itemArray2[0]) < 0) {
-                        linkString = itemArray1[0] + " " + itemArray2[0] + " ";
+                for (int i =0;i<itemArray1.length -1 ;i++){
+                    if (itemArray1[i].equals(itemArray2[i])){
+                        flag = false;
+                        break;
                     }
-                }else {
-                    for (int i =0;i<itemArray1.length -1 ;i++){
-                        if (itemArray1[i].equals(itemArray2[i])){
-                            flag = false;
-                            break;
-                        }
-                    }
-                    if (flag && itemArray1[itemArray1.length - 1].compareTo(itemArray2[itemArray1.length -1]) < 0){
-                        linkString = frequentItemList1  + itemArray2[itemArray2.length - 1] + " ";
-                    }
+                }
+                if (flag && itemArray1[itemArray1.length - 1].compareTo(itemArray2[itemArray1.length -1]) < 0){
+                    linkString = frequentItemList1  + itemArray2[itemArray2.length - 1] + " ";
                 }
 
                 /**
